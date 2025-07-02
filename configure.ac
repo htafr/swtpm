@@ -139,6 +139,23 @@ AC_ARG_WITH([openssl],
             [],
             [])
 
+AC_ARG_WITH([libspdm],
+            AS_HELP_STRING([--with-libspdm],[build libtpms with libspdm library]),
+            [with_libspdm=yes],
+            []
+)
+
+AS_IF([test "x$with_libspdm" = "xyes"],
+    [AC_CONFIG_COMMANDS([compile_libspdm],
+        [cd build && cmake -DARCH=aarch64 -DTOOLCHAIN=GCC -DTARGET=Release -DCRYPTO=openssl -DDISABLE_TESTS=1 ../libspdm && make],
+        ),
+        AC_CONFIG_COMMANDS_PRE([include_libspdm],
+            [find . -name '*.h' -type f ! -path "./unit_test/*" ! -path "./os_stub/openssllib/*" ! -path "./os_stub/mbedtlslib/*" | xargs dirname | uniq | awk '{split($0,a,"\."); printf "build"a[2]" "}']
+            )
+    ],
+
+)
+
 AS_CASE([$cryptolib],[openssl],
     [PKG_CHECK_MODULES([LIBCRYPTO],[libcrypto])
      AC_CHECK_LIB(crypto,
@@ -443,9 +460,9 @@ esac
 AC_SUBST([TSS_USER])
 AC_SUBST([TSS_GROUP])
 
-CFLAGS="$CFLAGS -Wreturn-type -Wsign-compare -Wswitch-enum"
-CFLAGS="$CFLAGS -Wmissing-prototypes -Wall -Werror"
-CFLAGS="$CFLAGS -Wformat -Wformat-security -Wshadow"
+CFLAGS="$CFLAGS -Wreturn-type -Wno-sign-compare -Wno-switch-enum"
+CFLAGS="$CFLAGS -Wno-missing-prototypes -Wall -Werror"
+CFLAGS="$CFLAGS -Wno-format -Wno-format-security -Wshadow -Wno-stack-protector"
 CFLAGS="$CFLAGS $GNUTLS_CFLAGS $COVERAGE_CFLAGS $SANITIZER_CFLAGS"
 
 LDFLAGS="$LDFLAGS $COVERAGE_LDFLAGS $SANITIZER_LDFLAGS"
@@ -502,10 +519,24 @@ AS_IF([test "x$with_seccomp" != "xno"],
     ]
 )
 
+if test "$with_libspdm" = "yes"; then
+  LDFLAGS="$LDFLAGS -L$prefix/lib"
+  SPDM_LIBS="-L$prefix/lib"
+  SPDM_LIBS="$SPDM_LIBS -lspdm_device_secret_lib_sample -lspdm_requester_lib"
+  SPDM_LIBS="$SPDM_LIBS -lspdm_responder_lib -lspdm_secured_message_lib -lspdm_transport_mctp_lib -lspdm_transport_pcidoe_lib"
+  SPDM_LIBS="$SPDM_LIBS -lspdm_common_lib -lspdm_crypt_ext_lib -lspdm_crypt_lib"
+  SPDM_LIBS="$SPDM_LIBS -lrnglib -lspdm_cert_verify_callback_sample"
+  SPDM_LIBS="$SPDM_LIBS -lcryptlib_openssl -lopenssllib"
+  SPDM_LIBS="$SPDM_LIBS -ldebuglib_null -lmalloclib -lmemlib -lplatform_lib "
+else
+  SPDM_LIBS=""
+fi
+
 MY_CFLAGS="$CFLAGS"
-MY_LDFLAGS="$LDFLAGS"
+MY_LDFLAGS="$LDFLAGS $SPDM_LIBS"
 AC_SUBST([MY_CFLAGS])
 AC_SUBST([MY_LDFLAGS])
+AC_SUBST([SPDM_LIBS])
 
 AC_CONFIG_FILES([Makefile                   \
 		debian/swtpm-tools.postinst \
@@ -547,6 +578,7 @@ printf "with_cuse       : %5s  (no = no CUSE interface)\n" $with_cuse
 printf "with_chardev    : %5s  (no = no chardev interface)\n" $with_chardev
 printf "with_vtpm_proxy : %5s  (no = no vtpm proxy support; Linux only)\n" $with_vtpm_proxy
 printf "with_seccomp    : %5s  (no = no seccomp profile; Linux only)\n" $with_seccomp
+printf "with_libspdm    : %5s  (no = no libspdm; Linux only)\n" $with_libspdm
 printf "enable_tests    : %5s  (no = no tests will run)\n" $enable_tests
 printf "\n"
 printf "active PCR banks      : %s\n" $DEFAULT_PCR_BANKS
@@ -569,6 +601,7 @@ echo "         GMP_LIBS = $GMP_LIBS"
 echo "       GMP_CFLAGS = $GMP_CFLAGS"
 echo "   LIBFUSE_CFLAGS = $LIBFUSE_CFLAGS"
 echo "     LIBFUSE_LIBS = $LIBFUSE_LIBS"
+echo "        SPDM_LIBS = $SPDM_LIBS"
 echo
 echo "TSS_USER=$TSS_USER"
 echo "TSS_GROUP=$TSS_GROUP"
