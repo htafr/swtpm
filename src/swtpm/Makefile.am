@@ -6,6 +6,11 @@
 
 MY_CFLAGS = @MY_CFLAGS@
 MY_LDFLAGS = @MY_LDFLAGS@
+SPDM_LIBS = @SPDM_LIBS@
+
+MY_CFLAGS += -I$(top_srcdir)/libspdm/include -I$(top_srcdir)/libspdm/os_stub
+# MY_CFLAGS += -I$(top_srcdir)/libspdm/os_stub/spdm_device_secret_lib_sample -I$(top_srcdir)/libspdm/os_stub/cryptlib_openssl
+# MY_CFLAGS += -I$(top_srcdir)/libspdm/os_stub/spdm_cert_verify_callback_sample -I$(top_srcdir)/libspdm/os_stub/spdm_crypt_ext_lib
 
 noinst_HEADERS = \
 	capabilities.h \
@@ -29,6 +34,7 @@ noinst_HEADERS = \
 	swtpm_io.h \
 	swtpm_nvstore.h \
 	swtpm_nvstore_linear.h \
+	swtpm_spdm.h \
 	threadpool.h \
 	tlv.h \
 	tpmlib.h \
@@ -60,6 +66,7 @@ libswtpm_libtpms_la_SOURCES = \
 	swtpm_nvstore_dir.c \
 	swtpm_nvstore_linear.c \
 	swtpm_nvstore_linear_file.c \
+	swtpm_spdm.c \
 	tlv.c \
 	tpmlib.c \
 	tpmstate.c \
@@ -92,7 +99,8 @@ libswtpm_libtpms_la_LIBADD = \
 	$(JSON_GLIB_LIBS) \
 	$(LIBRT_LIBS) \
 	$(LIBSECCOMP_LIBS) \
-	$(LIBCRYPTO_LIBS)
+	$(LIBCRYPTO_LIBS) \
+	$(SPDM_LIBS)
 
 bin_PROGRAMS = swtpm
 if WITH_CUSE
