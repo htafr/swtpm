@@ -147,11 +147,8 @@ AC_ARG_WITH([libspdm],
 
 AS_IF([test "x$with_libspdm" = "xyes"],
     [AC_CONFIG_COMMANDS([compile_libspdm],
-        [cd build && cmake -DARCH=aarch64 -DTOOLCHAIN=GCC -DTARGET=Release -DCRYPTO=openssl -DDISABLE_TESTS=1 ../libspdm && make],
+        [cd $ac_abs_top_builddir/build && cmake -DARCH=aarch64 -DTOOLCHAIN=GCC -DTARGET=Release -DCRYPTO=openssl -DDISABLE_TESTS=1 $ac_abs_top_srcdir/libspdm && make],
         ),
-        AC_CONFIG_COMMANDS_PRE([include_libspdm],
-            [find . -name '*.h' -type f ! -path "./unit_test/*" ! -path "./os_stub/openssllib/*" ! -path "./os_stub/mbedtlslib/*" | xargs dirname | uniq | awk '{split($0,a,"\."); printf "build"a[2]" "}']
-            )
     ],
 
 )
@@ -521,6 +518,7 @@ AS_IF([test "x$with_seccomp" != "xno"],
 
 if test "$with_libspdm" = "yes"; then
   LDFLAGS="$LDFLAGS -L$prefix/lib"
+  CFLAGS="$CFLAGS -L$ac_abs_top_srcdir/libspdm/include"
   SPDM_LIBS="-L$prefix/lib"
   SPDM_LIBS="$SPDM_LIBS -lspdm_device_secret_lib_sample -lspdm_requester_lib"
   SPDM_LIBS="$SPDM_LIBS -lspdm_responder_lib -lspdm_secured_message_lib -lspdm_transport_mctp_lib -lspdm_transport_pcidoe_lib"
